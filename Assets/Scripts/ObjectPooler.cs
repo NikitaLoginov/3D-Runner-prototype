@@ -7,11 +7,15 @@ public class ObjectPooler : MonoBehaviour
 {
     public static ObjectPooler Instance;
 
+    //Obstacles
     public List<GameObject> pooledObstacles;
     public GameObject obstacleToPool;
     public int amountOfObstaclesToPool;
 
-    private GameObject _obstaclesObject;
+    //Coins
+    public List<GameObject> pooledCoins;
+    public GameObject coinToPool;
+    public int amountOfCoinsToPool;
 
     private void Awake()
     {
@@ -21,7 +25,7 @@ public class ObjectPooler : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("Something tried to spawn a another ObjectPooler");
+            Debug.LogWarning("Something tried to spawn another ObjectPooler");
             Destroy(gameObject);
         }
         Instance = this;
@@ -29,13 +33,21 @@ public class ObjectPooler : MonoBehaviour
 
     private void Start()
     {
-        
         pooledObstacles = new List<GameObject>();
+        pooledCoins = new List<GameObject>();
+        
         for (int i = 0; i < amountOfObstaclesToPool; i++)
         {
-            GameObject obj = (GameObject)Instantiate(obstacleToPool, this.transform, true); // instantiating obstacle as child of "ObjectPooler" object
-            obj.SetActive(false);
-            pooledObstacles.Add(obj);
+            GameObject obst = Instantiate(obstacleToPool, this.transform, true); // instantiating obstacle as child of "ObjectPooler" object
+            obst.SetActive(false);
+            pooledObstacles.Add(obst);
+        }
+
+        for (int i = 0; i < amountOfCoinsToPool; i++)
+        {
+            GameObject coin = Instantiate(coinToPool, this.transform, true);
+            coin.SetActive(false);
+            pooledCoins.Add(coin);
         }
     }
 
@@ -49,6 +61,16 @@ public class ObjectPooler : MonoBehaviour
 
         }
         //if obstacle IS active on scene - return null
+        return null;
+    }
+
+    public GameObject GetPooledCoin()
+    {
+        for (int i = 0; i < pooledCoins.Count; i++)
+        {
+            if (!pooledCoins[i].activeInHierarchy)
+                return pooledCoins[i];
+        }
         return null;
     }
 }

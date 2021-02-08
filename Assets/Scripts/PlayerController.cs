@@ -56,7 +56,7 @@ public class PlayerController : MonoBehaviour
 
     private void CheckingInput()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space) && _isOnGround)
         {
             _canJump = true;
         }
