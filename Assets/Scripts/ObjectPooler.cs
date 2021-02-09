@@ -28,7 +28,6 @@ public class ObjectPooler : MonoBehaviour
             Debug.LogWarning("Something tried to spawn another ObjectPooler");
             Destroy(gameObject);
         }
-        Instance = this;
     }
 
     private void Start()

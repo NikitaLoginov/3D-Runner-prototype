@@ -10,9 +10,12 @@ public class MoveBack : MonoBehaviour
 
     private void Update()
     {
-        transform.Translate(Vector3.back * Time.deltaTime * _speed);
-        
-        if(transform.position.z < _backBound)
-            gameObject.SetActive(false);
+        if (!GameManager.IsGameOver)
+        {
+            transform.Translate(Vector3.back * (Time.deltaTime * _speed));
+            
+            if(transform.position.z < _backBound)
+                gameObject.SetActive(false);
+        }
     }
 }

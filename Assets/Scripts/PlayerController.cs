@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Xml;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class PlayerController : MonoBehaviour
 {
@@ -9,31 +11,37 @@ public class PlayerController : MonoBehaviour
     //Jumping
     private bool _isOnGround;
     private bool _canJump;
-    private float _jumpForce = 500f;
+    [SerializeField] private float _jumpForce = 500f;
+    [SerializeField] private float _horizontalSpeed = 15f;
+    private Vector3 _gravityConst = new Vector3(0, -9.8f, 0);
     private float gravityModifier = 1.5f;
-    private float _movingSpeed = 15f;
     
     //Moving
     private bool _canMove;
     private Vector3 _left;
     private Vector3 _right;
-    [SerializeField] private Transform _targetLeft;
-    [SerializeField] private Transform _targetRight;
-    [SerializeField] private Transform _targetCenter;
+    private Transform _targetLeft;
+    private Transform _targetRight;
+    private Transform _targetCenter;
     private Transform _target;
     private Transform _playerTransform;
 
     private void Awake()
     {
+        _targetLeft = GameObject.Find("LeftTarget").transform;
+        _targetCenter = GameObject.Find("CenterTarget").transform;
+        _targetRight = GameObject.Find("RightTarget").transform;
         _playerRb = GetComponent<Rigidbody>();
+        _playerAnimator = GetComponent<Animator>();
+        
         _playerTransform = this.transform;
         _playerTransform.transform.position = _targetCenter.transform.position;
         
-        _playerAnimator = GetComponent<Animator>();
         _playerAnimator.SetFloat("Speed_f", 3f); // setting speed value >3 to switch to running animation
 
         _target = _targetCenter;
-
+        
+        Physics.gravity = _gravityConst; // resetting gravity to default value to stop it from multiplying on reload
         Physics.gravity *= gravityModifier; // creating more gravity
     }
 
@@ -89,7 +97,7 @@ public class PlayerController : MonoBehaviour
     //Method for horizontal movement
     private void HorizontalMovement()
     {
-        float step = _movingSpeed * Time.deltaTime;
+        float step = _horizontalSpeed * Time.deltaTime;
         _playerTransform.position = Vector3.MoveTowards(_playerTransform.position, _target.position, step);
         
         if(Vector3.Distance(_playerTransform.position, _target.position) < 0.001f)
@@ -110,6 +118,20 @@ public class PlayerController : MonoBehaviour
     private void OnCollisionEnter(Collision other)
     {
         if (other.gameObject.CompareTag("Ground"))
+        {
             _isOnGround = true;
+        }
+
+        if (other.gameObject.CompareTag("Coin"))
+        {
+            //update score
+            other.gameObject.SetActive(false);
+        }
+
+        if (other.gameObject.CompareTag("Obstacle"))
+        {
+            EventBroker.CallGameOver();
+        }
+
     }
 }
