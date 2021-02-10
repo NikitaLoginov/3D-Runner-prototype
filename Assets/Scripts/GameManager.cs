@@ -1,4 +1,4 @@
-﻿using System;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Quaternion = UnityEngine.Quaternion;
@@ -7,11 +7,8 @@ using Vector3 = UnityEngine.Vector3;
 
 public class GameManager : MonoBehaviour
 {
-    private static bool _isGameOver;
-    public static bool IsGameOver
-    {
-        get { return _isGameOver; }
-    }
+    private bool _isGamePaused;
+    private bool _isGameOver;
     private float _spawnRate;
     private Vector3[] xSpawnPositions;
     
@@ -19,7 +16,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject _objectPooler;
     [SerializeField] private GameObject _gameOverScreen;
     [SerializeField] private GameObject _pauseMenuScreen;
-    private bool _gameIsPaused;
+    [SerializeField] private TextMeshProUGUI _scoreText;
+    private int _score = 0;
 
     private void Awake()
     {
@@ -34,11 +32,14 @@ public class GameManager : MonoBehaviour
         _isGameOver = false;
         Time.timeScale = 1f;
         
-        //Events
+        //Subscribing to Events
         EventBroker.GameOverHandler += GameOver;
         EventBroker.RestartGameHandler += RestartGame;
         EventBroker.ResumeGameHandler += ResumeGame;
-        
+        EventBroker.UpdateScoreHandler += UpdateScore;
+        EventBroker.LoadMainMenuHandler += LoadMainMenu;
+
+        _scoreText.text = "Score: " + 0;
         InvokeRepeating(nameof(SpawnObstacle), 1.0f, 2.0f);
         InvokeRepeating(nameof(SpawnCoin), 0.5f,0.2f);
     }
@@ -47,27 +48,34 @@ public class GameManager : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (_gameIsPaused)
+            if (_isGamePaused)
                 ResumeGame();
-            else if(!_gameIsPaused)
+            else if(!_isGamePaused)
                 Pause();
         }
     }
 
+    //Method that resumes game after it being paused
     private void ResumeGame()
     {
-        _pauseMenuScreen.gameObject.SetActive(false);
-        _gameIsPaused = false;
+        _isGamePaused = false;
         Time.timeScale = 1f;
+        _pauseMenuScreen.gameObject.SetActive(false);
+        
+        AudioManager.AudioManager.Instance.Volume("Music",0.5f);
     }
+    //Method that pauses game
     private void Pause()
     {
         Time.timeScale = 0f;
+        _isGamePaused = true;
         _pauseMenuScreen.gameObject.SetActive(true);
-        _gameIsPaused = true;
+        
+        //AudioManager.Instance.Stop("Music");
+        AudioManager.AudioManager.Instance.Volume("Music", 0.2f);
     }
 
-    // Pooling obstacles from objects pool
+    // Pooling obstacles from objects pool and spawning them in scene
     private void SpawnObstacle()
     {
         if (_isGameOver) return;
@@ -80,6 +88,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // Pooling coins from objects pool and spawning them in scene
     private void SpawnCoin()
     {
         if (_isGameOver) return;
@@ -100,21 +109,63 @@ public class GameManager : MonoBehaviour
         return spawnPosition;
     }
 
+    //Method to update score
+    private void UpdateScore(int scoreToAdd)
+    {
+        _score += scoreToAdd;
+        _scoreText.text = "Score: " + _score;
+        
+        //increases speed by 5 every 30 points
+        if (CheckIfRaiseDifficulty(_score))
+        {
+            EventBroker.CallUpdateSpeed(5f);
+            AudioManager.AudioManager.Instance.Play("Difficulty");
+        }
+    }
+
+    bool CheckIfRaiseDifficulty(int score)
+    {
+        if (score % 30 == 0)
+            return true;
+        return false;
+    }
+
+    //Method that fires when game is over
     private void GameOver()
     {
         _isGameOver = true;
+        EventBroker.CallStopMovingObjects();
+        
         _gameOverScreen.gameObject.SetActive(true);
+        AudioManager.AudioManager.Instance.Stop("Music");
     }
 
+    //Method to restart game
     private void RestartGame()
     {
-        EventBroker.GameOverHandler -= GameOver;
-        EventBroker.RestartGameHandler -= RestartGame;
-        EventBroker.ResumeGameHandler -= RestartGame;
+        Unsubscribe();
 
         string sceneName = SceneManager.GetActiveScene().name;
-        SceneManager.UnloadSceneAsync(sceneName);
-        SceneManager.LoadScene(sceneName);
+        SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+        
+        AudioManager.AudioManager.Instance.Play("Music",0.5f);
     }
 
+
+    private void LoadMainMenu()
+    {
+        Unsubscribe();
+        
+        SceneManager.LoadScene("MainMenuScene", LoadSceneMode.Single);
+    }
+    private void Unsubscribe()
+    {
+        //Unsubscribing from events
+        EventBroker.GameOverHandler -= GameOver;
+        EventBroker.RestartGameHandler -= RestartGame;
+        EventBroker.ResumeGameHandler -= ResumeGame;
+        EventBroker.LoadMainMenuHandler -= LoadMainMenu;
+        EventBroker.UpdateScoreHandler -= UpdateScore;
+    }
+    
 }
